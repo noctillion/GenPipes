@@ -2493,7 +2493,6 @@ For information on the structure and contents of the LongRead readset file, plea
                 input_maf = os.path.join(pcgr_directory, tumor_pair.name + ".pcgr." + assembly + ".maf")
                 clean_maf =  os.path.join(djerba_dir, tumor_pair.name + ".pcgr." + assembly + ".clean.maf")
                 purple_dir = os.path.join(self.output_dirs['paired_variants_directory'], tumor_pair.name, "purple")
-                purple_zip = os.path.join(djerba_dir, tumor_pair.tumor.name + ".purple.zip")
                 msi_input = os.path.join(purple_dir, f"{tumor_pair.tumor.name}.purple.purity.tsv")
                 savana_dir = os.path.join(self.output_dirs["SVariants_directory"], tumor_pair.name, "savana")
                 hrd_input = os.path.join(savana_dir, tumor_pair.tumor.name + ".chord.prediction.tsv")
@@ -2508,18 +2507,13 @@ For information on the structure and contents of the LongRead readset file, plea
                                 input_maf,
                                 clean_maf
                                 ),
-                            bash.zip(
-                                purple_dir,
-                                purple_zip,
-                                recursive=True
-                                ),
                             djerba.make_config(
                                 config_file,
                                 tumor_pair.name,
                                 tumor_pair.tumor.name,
                                 tumor_pair.normal.name,
                                 clean_maf + ".gz",
-                                purple_zip,
+                                purple_dir,
                                 msi_input=msi_input,
                                 hrd_input=hrd_input,
                                 assay="WGS"

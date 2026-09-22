@@ -98,7 +98,7 @@ tumour_id = {tumor_id}
 normal_id = {normal_id}
 whizbam_project = COL
 
-{"[wgts.cnv_purple]" if purple_input else ""}
+{"[hmf.wgts.cnv_purple]" if purple_input else ""}
 {"apply cache = " + global_conf.global_get(ini_section, 'apply_cache', required = False) if global_conf.global_get(ini_section, 'apply_cache', required = False) and purple_input else ""}
 {"update cache = " + global_conf.global_get(ini_section, 'update_cache', required = False) if global_conf.global_get(ini_section, 'update_cache', required = False) and purple_input else ""}
 {"oncokb cache = " + global_conf.global_get(ini_section, 'oncokb_cache', required = False) if global_conf.global_get(ini_section, 'oncokb_cache', required = False) and purple_input else ""}
@@ -106,9 +106,9 @@ whizbam_project = COL
 {"configure_priority = 900" if purple_input else ""}
 {"tumour_id = " + tumor_id if purple_input else ""}
 {"oncotree_code = " + global_conf.global_get(ini_section, 'oncotree_code') if purple_input else ""}
-{"purple_zip = " + purple_input if purple_input else ""}
+{"purple_dir = " + purple_input if purple_input else ""}
 {"whizbam_project=OCTCAP" if purple_input else ""}
-{"assay = " + assay if purple_input else ""} 
+{"normal_id = " + normal_id if purple_input else ""}
 
 [hmf.genomic_landscape]
 attributes = research

@@ -3061,7 +3061,6 @@ END
                 chord_input = os.path.join(purple_dir, tumor_pair.tumor.name + ".chord.prediction.tsv")
 
                 djerba_dir = os.path.join(self.output_dirs['report_directory'], tumor_pair.name, "djerba")
-                purple_zip = os.path.join(djerba_dir, tumor_pair.tumor.name + ".purple.zip")
             
                 input_vcf = os.path.join(ensemble_directory, tumor_pair.name, tumor_pair.name + ".ensemble.somatic.vt.annot.2caller.flt.vcf.gz")
                 ensemble_directory = os.path.join(self.output_dirs['paired_variants_directory'], "ensemble")
@@ -3081,18 +3080,13 @@ END
                                 input_maf,
                                 clean_maf
                                 ),
-                            bash.zip(
-                                purple_dir,
-                                purple_zip,
-                                recursive=True
-                                ),
                             djerba.make_config(
                                 config_file,
                                 tumor_pair.name,
                                 tumor_pair.tumor.name,
                                 tumor_pair.normal.name,
                                 clean_maf + ".gz",
-                                purple_zip,
+                                purple_dir,
                                 msi_input=msi_input,
                                 hrd_input=chord_input
                                 ),
