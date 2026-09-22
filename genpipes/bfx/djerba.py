@@ -18,6 +18,7 @@
 ################################################################################
 
 # Python Standard Modules
+import os
 
 # MUGQIC Modules
 from ..core.config import global_conf
@@ -38,6 +39,11 @@ def make_config(
     """
     Creates djerba config file from available inputs produced by the pipeline.
     """
+
+    # Purity, ploidy and coverage are read at run time from the purple output
+    # directory the caller passes in; the pipeline knows where purple wrote.
+    purity_tsv = os.path.join(purple_input, tumor_id + ".purple.purity.tsv")
+    purple_qc = os.path.join(purple_input, tumor_id + ".purple.qc")
 
     config_content = f"""\
 [core]
@@ -72,9 +78,9 @@ sample_type = {global_conf.global_get(ini_section, 'sample_type', required = Fal
 tumour_id = {tumor_id}
 callability = NA
 donor = {tumor_pair_name}
-purity = `cat pairedVariants/{tumor_pair_name}/purple/{tumor_id}.purple.qc | awk '$1 == "Purity" {{print $2}}'`
-ploidy = `awk 'NR == 2 {{print $5}}' pairedVariants/{tumor_pair_name}/purple/{tumor_id}.purple.purity.tsv`
-mean_coverage = `cat pairedVariants/{tumor_pair_name}/purple/{tumor_id}.purple.qc | awk '$1 == "AmberMeanDepth" {{print $2}}'`
+purity = ${{purity}}
+ploidy = ${{ploidy}}
+mean_coverage = ${{coverage}}
 
 [treatment_options_merger]
 attributes = research,supplementary
@@ -143,7 +149,17 @@ render_priority = 1200
     return Job(
         output_files = [output],
         command="""\
+purity=$(awk '$1 == "Purity" {{print $2}}' {purple_qc}) && \\
+ploidy=$(awk 'NR == 2 {{print $5}}' {purity_tsv}) && \\
+coverage=$(awk '$1 == "AmberMeanDepth" {{print $2}}' {purple_qc}) && \\
+if [ -z "$purity" ] || [ -z "$ploidy" ] || [ -z "$coverage" ]; then
+    echo "Error: cannot read purity, ploidy or coverage from {purple_dir}" 1>&2
+    exit 1
+fi && \\
 echo \"{config_content}\" > {config_file}""".format(
+    purity_tsv=purity_tsv,
+    purple_qc=purple_qc,
+    purple_dir=purple_input,
     config_content=config_content,
     config_file=output
         )

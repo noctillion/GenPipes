@@ -2473,7 +2473,7 @@ For information on the structure and contents of the LongRead readset file, plea
         Produce Djerba report.
         Takes as input:
             1. Outputs from purple:
-                1a. Zipped purple output directory.
+                1a. The purple output directory.
                 1b. *purple.purity.tsv as-is.
             2. Output from PCGR:
                 2a. MAF file, transformed by djerba.clean_maf() function to remove rows without depth information.
