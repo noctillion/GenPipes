@@ -2472,9 +2472,11 @@ For information on the structure and contents of the LongRead readset file, plea
         """
         Produce Djerba report.
         Takes as input:
-            1. Outputs from purple:
-                1a. Zipped purple output directory.
-                1b. *purple.purity.tsv as-is.
+            1. Outputs from savana:
+                1a. *segmented_absolute_copy_number.tsv as-is (copy number segments).
+                1b. *fitted_purity_ploidy.tsv as-is (purity and ploidy).
+            1bis. Outputs from purple:
+                *purple.purity.tsv as-is (MSI).
             2. Output from PCGR:
                 2a. MAF file, transformed by djerba.clean_maf() function to remove rows without depth information.
             3. Output from CHORD:
@@ -2493,9 +2495,10 @@ For information on the structure and contents of the LongRead readset file, plea
                 input_maf = os.path.join(pcgr_directory, tumor_pair.name + ".pcgr." + assembly + ".maf")
                 clean_maf =  os.path.join(djerba_dir, tumor_pair.name + ".pcgr." + assembly + ".clean.maf")
                 purple_dir = os.path.join(self.output_dirs['paired_variants_directory'], tumor_pair.name, "purple")
-                purple_zip = os.path.join(djerba_dir, tumor_pair.tumor.name + ".purple.zip")
                 msi_input = os.path.join(purple_dir, f"{tumor_pair.tumor.name}.purple.purity.tsv")
                 savana_dir = os.path.join(self.output_dirs["SVariants_directory"], tumor_pair.name, "savana")
+                savana_segments = os.path.join(savana_dir, tumor_pair.name + "_segmented_absolute_copy_number.tsv")
+                savana_purity_ploidy = os.path.join(savana_dir, tumor_pair.name + "_fitted_purity_ploidy.tsv")
                 hrd_input = os.path.join(savana_dir, tumor_pair.tumor.name + ".chord.prediction.tsv")
                 config_file = os.path.join(djerba_dir, tumor_pair.name + ".djerba.ini")
                 djerba_script = os.path.join(djerba_dir, "djerba_report." + tumor_pair.name + ".sh")
@@ -2508,33 +2511,30 @@ For information on the structure and contents of the LongRead readset file, plea
                                 input_maf,
                                 clean_maf
                                 ),
-                            bash.zip(
-                                purple_dir,
-                                purple_zip,
-                                recursive=True
-                                ),
                             djerba.make_config(
                                 config_file,
                                 tumor_pair.name,
                                 tumor_pair.tumor.name,
                                 tumor_pair.normal.name,
                                 clean_maf + ".gz",
-                                purple_zip,
+                                None,
                                 msi_input=msi_input,
                                 hrd_input=hrd_input,
-                                assay="WGS"
+                                assay="WGS",
+                                savana_input={"segments": savana_segments, "purity_ploidy": savana_purity_ploidy}
                                 ),
                             # djerba report requires internet connection. Script is produced but must be executed locally.
                             djerba.make_script(
                                 config_file,
                                 djerba_dir,
-                                djerba_script
+                                djerba_script,
+                                extra_djerba_packages="djerba_mcgill"
                                 )
                         ],
                         name="report_djerba." + tumor_pair.name,
                         samples=[tumor_pair.tumor],
                         readsets=list(tumor_pair.tumor.readsets),
-                        input_dependency=[input_maf, msi_input, hrd_input],
+                        input_dependency=[input_maf, msi_input, hrd_input, savana_segments, savana_purity_ploidy],
                         output_dependency=[config_file, djerba_script]
                         )
                     )
