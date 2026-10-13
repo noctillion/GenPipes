@@ -33,11 +33,42 @@ def make_config(
         msi_input,
         hrd_input,
         assay="WGTS",
-        ini_section = 'report_djerba'
+        ini_section = 'report_djerba',
+        savana_input=None
         ):
     """
     Creates djerba config file from available inputs produced by the pipeline.
+    When savana_input (dict with keys 'segments' and 'purity_ploidy') is given, a [savana_cnv]
+    section is written and purity and ploidy are not taken from PURPLE in [sample].
     """
+
+    if savana_input:
+        sample_purity_ploidy = ""
+    else:
+        sample_purity_ploidy = f"""\
+purity = `cat pairedVariants/{tumor_pair_name}/purple/{tumor_id}.purple.qc | awk '$1 == "Purity" {{print $2}}'`
+ploidy = `awk 'NR == 2 {{print $5}}' pairedVariants/{tumor_pair_name}/purple/{tumor_id}.purple.purity.tsv`
+"""
+
+    savana_section = ""
+    if savana_input:
+        apply_cache = global_conf.global_get(ini_section, 'apply_cache', required = False)
+        update_cache = global_conf.global_get(ini_section, 'update_cache', required = False)
+        oncokb_cache = global_conf.global_get(ini_section, 'oncokb_cache', required = False)
+        savana_section = "\n[savana_cnv]\n"
+        if apply_cache:
+            savana_section += "apply cache = " + apply_cache + "\n"
+        if update_cache:
+            savana_section += "update cache = " + update_cache + "\n"
+        if oncokb_cache:
+            savana_section += "oncokb cache = " + oncokb_cache + "\n"
+        savana_section += "attributes = research\n"
+        savana_section += "configure_priority = 80\n"
+        savana_section += "tumour_id = " + tumor_id + "\n"
+        savana_section += "oncotree_code = " + global_conf.global_get(ini_section, 'oncotree_code') + "\n"
+        savana_section += "assay = " + assay + "\n"
+        savana_section += "savana_segments_file = " + savana_input['segments'] + "\n"
+        savana_section += "savana_purity_ploidy_file = " + savana_input['purity_ploidy'] + "\n"
 
     config_content = f"""\
 [core]
@@ -72,9 +103,7 @@ sample_type = {global_conf.global_get(ini_section, 'sample_type', required = Fal
 tumour_id = {tumor_id}
 callability = NA
 donor = {tumor_pair_name}
-purity = `cat pairedVariants/{tumor_pair_name}/purple/{tumor_id}.purple.qc | awk '$1 == "Purity" {{print $2}}'`
-ploidy = `awk 'NR == 2 {{print $5}}' pairedVariants/{tumor_pair_name}/purple/{tumor_id}.purple.purity.tsv`
-mean_coverage = `cat pairedVariants/{tumor_pair_name}/purple/{tumor_id}.purple.qc | awk '$1 == "AmberMeanDepth" {{print $2}}'`
+{sample_purity_ploidy}mean_coverage = `cat pairedVariants/{tumor_pair_name}/purple/{tumor_id}.purple.qc | awk '$1 == "AmberMeanDepth" {{print $2}}'`
 
 [treatment_options_merger]
 attributes = research,supplementary
@@ -108,7 +137,7 @@ whizbam_project = COL
 {"oncotree_code = " + global_conf.global_get(ini_section, 'oncotree_code') if purple_input else ""}
 {"purple_zip = " + purple_input if purple_input else ""}
 {"whizbam_project=OCTCAP" if purple_input else ""}
-{"assay = " + assay if purple_input else ""} 
+{"assay = " + assay if purple_input else ""} {savana_section}
 
 [hmf.genomic_landscape]
 attributes = research
@@ -175,9 +204,15 @@ def make_script(
         config_file,
         output_dir,
         output_file,
-        ini_section = 'report_djerba'
+        ini_section = 'report_djerba',
+        extra_djerba_packages=None
         ):
-    
+
+    # Expansion of DJERBA_PACKAGES must happen when the generated script runs, hence the escaped dollar
+    extra_packages_export = ""
+    if extra_djerba_packages:
+        extra_packages_export = "export DJERBA_PACKAGES=\\${DJERBA_PACKAGES:-djerba:hmf_djerba}:" + extra_djerba_packages + " && \\\n"
+
     return Job(
         [config_file],
         [output_file],
@@ -185,7 +220,7 @@ def make_script(
         command="""\
 echo "module purge && \\
 module load {module_djerba} {module_wkhtmltopdf} && \\
-export ONCOKB_TOKEN={oncokb_token} && \\
+{extra_packages_export}export ONCOKB_TOKEN={oncokb_token} && \\
 export DJERBA_CORE_HTML_DIR={html_directory} && \\
 export DJERBA_TRACKING_DIR={output_dir} && \\
 
@@ -200,6 +235,7 @@ djerba.py {djerba_options} report \\
         djerba_options=global_conf.global_get(ini_section, 'djerba_options', required=False),
         config_file=config_file,
         output_dir=output_dir,
-        output_file=output_file
+        output_file=output_file,
+        extra_packages_export=extra_packages_export
         )
     )
